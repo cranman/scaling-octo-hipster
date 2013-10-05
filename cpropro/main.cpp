@@ -1,10 +1,13 @@
 #include <string>
 #include <sstream>
+#include <ctime>
 #include <algorithm>
+#include <vector>
 #include <fstream>
 #include <iostream>
 #include <curl/curl.h>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
 using boost::property_tree::ptree;
 
@@ -20,6 +23,97 @@ template<class T> std::string toString(const T& t)
 	stream << t;
 	return stream.str();
 }
+
+int findCutPoint(std::string title)
+{
+	int count;
+	int result;
+	std::vector<int> positions;
+	count = std::count(title.begin(), title.end(), '?');
+	if(count)
+	{
+		for(int i=0; i<title.size(); ++i)
+		{
+			if(title.at(i) == '?')
+			{
+				positions.push_back(i);
+			}
+		}
+		result = positions.at((positions.size()-1)/2)+1;
+		if(result < title.size()-1)
+		{
+			return result;
+		}
+		positions.clear();
+	}
+	count = std::count(title.begin(), title.end(), '.');
+	if(count)
+	{
+		for(int i=0; i<title.size(); ++i)
+		{
+			if(title.at(i) == '.')
+			{
+				positions.push_back(i);
+			}
+		}
+		result = positions.at((positions.size()-1)/2)+1;
+		if(result < title.size()-1)
+		{
+			return result;
+		}
+		positions.clear();
+	}
+	count = std::count(title.begin(), title.end(), '"');
+	if(count)
+	{
+		for(int i=0; i<title.size(); ++i)
+		{
+			if(title.at(i) == '"')
+			{
+				positions.push_back(i);
+			}
+		}
+		result = positions.at((positions.size()-1)/2);
+		if(result < title.size()-1)
+		{
+			return result;
+		}
+		positions.clear();
+	}
+	count = std::count(title.begin(), title.end(), ',');
+	if(count)
+	{
+		for(int i=0; i<title.size(); ++i)
+		{
+			if(title.at(i) == ',')
+			{
+				positions.push_back(i);
+			}
+		}
+		result = positions.at((positions.size()-1)/2)+1;
+		if(result < title.size()-1)
+		{
+			return result;
+		}
+		positions.clear();
+	}
+	count = std::count(title.begin(), title.end(), ' ');
+	if(count)
+	{
+		std::vector<int> positions;
+		for(int i=0; i<title.size(); ++i)
+		{
+			if(title.at(i) == ' ')
+			{
+				positions.push_back(i);
+			}
+		}
+		return positions.at(positions.size()/2);
+	}
+	return title.size()/2;
+}
+
+
 
 size_t writeCallback(char* buf, size_t size, size_t nmemb, void* up)
 { //callback must have this declaration
@@ -48,6 +142,7 @@ size_t write_file(char* buf, size_t size, size_t nmemb, void* up)
 
 int main()
 {
+	std::srand(time(NULL));
 	CURL* curl; //our curl object
 
 	curl_global_init(CURL_GLOBAL_ALL); //pretty obvious
@@ -70,19 +165,33 @@ int main()
 	ptree::iterator it=posts.begin();
 	std::string title = it->second.get<std::string>("data.title");
 	std::cout << "title: " << title << std::endl;
+	if(title.at(0) == '"')
+	{
+		title.erase(title.begin());
+	}
+	if(title.at(title.size()-1) == '"')
+	{
+		title.erase(title.begin()+title.size()-1);
+	}
 
 	data = "";
-	curl_easy_setopt(curl, CURLOPT_URL, "http://version1.api.memegenerator.net/Instances_Select_ByPopular");
+	curl_easy_setopt(curl, CURLOPT_URL, "http://version1.api.memegenerator.net/Generators_Select_ByPopular?pageIndex=0&pageSize=24&days=7");
 	curl_easy_perform(curl);
 
 	ss << data;
 	boost::property_tree::read_json(ss, pt);
 	posts = pt.get_child("result");
+
 //	for(ptree::iterator it=posts.begin(); it!=posts.end(); ++it)
 //	{
 //		std::cout << it->second.get<std::string>("imageUrl") << std::endl;
 //	}
 	it=posts.begin();
+	int num = std::rand() % 24;
+	for(int i=0; i<num; ++i)
+	{
+		++it;
+	}
 	std::string url = it->second.get<std::string>("imageUrl");
 	std::cout << "imageurl: " << url << std::endl;
 
@@ -93,12 +202,17 @@ int main()
 	image_file.close();
 	curl_easy_cleanup(curl);
 
-	std::string title1 = title.substr(0,title.length()/2);
-	std::replace(title1.begin(), title1.end(), '"', ' ');
-	std::string title2 = title.substr(title.length()/2);
-	std::replace(title2.begin(), title2.end(), '"', ' ');
+	std::string title1 = title.substr(0,findCutPoint(title));
+	boost::replace_all(title1, "'", "\\''");
+	title1 = std::string("'") + title1 + std::string("'");
+	float size1 = title1.size()>90?25:title1.size()>30?40:50;
+	std::string title2 = title.substr(findCutPoint(title));
+	boost::replace_all(title2, "'", "\\''");
+	title2 = std::string("'") + title2 + std::string("'");
+	float size2 = title2.size()>90?25:title2.size()>30?40:50;
+	std::cout << "title1: " << title1.size() << "; title2: " << title2.size() << std::endl;
 
-	std::system(std::string("convert temp_image.jpg -size 400 -background rgba\\(0,0,0,0\\) -font impact.ttf -strokewidth 2 -pointsize " + toString<int>(1200/title1.size()) + " -stroke black -fill white -gravity north caption:\"" + title1 + "\" -compose over -composite -pointsize " + toString<int>(1200/title2.size()) + " -gravity south caption:\"" + title2 + "\" -compose over -composite output.jpg").c_str());
+	std::system(std::string("convert temp_image.jpg -resize 400 -size 400 -background rgba\\(0,0,0,0\\) -font impact.ttf -strokewidth 2 -pointsize " + toString<float>(size1) + " -stroke black -fill white -gravity north caption:" + title1 + " -compose over -composite -pointsize " + toString<float>(size2) + " -gravity south caption:" + title2 + " -compose over -composite output.jpg").c_str());
 
 	curl_global_cleanup();
 	return 0;
