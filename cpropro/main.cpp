@@ -56,24 +56,24 @@ size_t findCutPoint(std::string title)
 
 
 
-size_t writeCallback(char* buf, size_t size, size_t nmemb, void* up)
+size_t writeCallback(char* buf, size_t size, size_t nmemb, void*)
 { //callback must have this declaration
 	//buf is a pointer to the data that curl has for us
 	//size*nmemb is the size of the buffer
 
-	for (int c = 0; c<size*nmemb; c++)
+	for (size_t c = 0; c<size*nmemb; ++c)
 	{
 		data.push_back(buf[c]);
 	}
 	return size*nmemb; //tell curl how many bytes we handled
 }
 
-size_t write_file(char* buf, size_t size, size_t nmemb, void* up)
+size_t write_file(char* buf, size_t size, size_t nmemb, void*)
 { //callback must have this declaration
 	//buf is a pointer to the data that curl has for us
 	//size*nmemb is the size of the buffer
 
-	for (int c = 0; c<size*nmemb; c++)
+	for (size_t c = 0; c<size*nmemb; ++c)
 	{
 		image_file << buf[c];
 	}
