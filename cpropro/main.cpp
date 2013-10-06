@@ -30,7 +30,7 @@ template<class T> std::string toString(const T& t)
 
 size_t findCutPoint(std::string title)
 {
-	static std::vector<char> break_chars = {'?', '.', ';', '"', ',', ' '};
+	static std::vector<char> break_chars = {'?', '.', ':', ';', '"', ',', ' '};
 
 	for (const char break_char : break_chars)
 	{
