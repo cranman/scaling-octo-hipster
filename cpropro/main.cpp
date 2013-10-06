@@ -63,6 +63,23 @@ int findCutPoint(std::string title)
 		}
 		positions.clear();
 	}
+	count = std::count(title.begin(), title.end(), ';');
+	if(count)
+	{
+		for(int i=0; i<title.size(); ++i)
+		{
+			if(title.at(i) == ';')
+			{
+				positions.push_back(i);
+			}
+		}
+		result = positions.at((positions.size()-1)/2)+1;
+		if(result < title.size()-1)
+		{
+			return result;
+		}
+		positions.clear();
+	}
 	count = std::count(title.begin(), title.end(), '"');
 	if(count)
 	{
@@ -74,6 +91,23 @@ int findCutPoint(std::string title)
 			}
 		}
 		result = positions.at((positions.size()-1)/2);
+		if(result < title.size()-1)
+		{
+			return result;
+		}
+		positions.clear();
+	}
+	count = std::count(title.begin(), title.end(), ';');
+	if(count)
+	{
+		for(int i=0; i<title.size(); ++i)
+		{
+			if(title.at(i) == ';')
+			{
+				positions.push_back(i);
+			}
+		}
+		result = positions.at((positions.size()-1)/2)+1;
 		if(result < title.size()-1)
 		{
 			return result;
