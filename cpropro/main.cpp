@@ -5,10 +5,14 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include <iterator>
+
 #include <curl/curl.h>
+
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/foreach.hpp>
+
 using boost::property_tree::ptree;
 
 std::string account="uwcstest";
@@ -24,126 +28,29 @@ template<class T> std::string toString(const T& t)
 	return stream.str();
 }
 
-int findCutPoint(std::string title)
+size_t findCutPoint(std::string title)
 {
-	int count;
-	int result;
-	std::vector<int> positions;
-	count = std::count(title.begin(), title.end(), '?');
-	if(count)
+	static std::vector<char> break_chars = {'?', '.', ';', '"', ',', ' '};
+
+	for (const char break_char : break_chars)
 	{
-		for(int i=0; i<title.size(); ++i)
+		if (std::find(std::begin(title), std::end(title), break_char) == std::end(title))
+			continue;
+
+		std::vector<size_t> positions;
+
+		for (size_t i = 0; i < title.size(); ++i)
 		{
-			if(title.at(i) == '?')
-			{
+			if (title.at(i) == break_char)
 				positions.push_back(i);
-			}
 		}
-		result = positions.at((positions.size()-1)/2)+1;
-		if(result < title.size()-1)
-		{
-			return result;
-		}
-		positions.clear();
+
+		size_t position = positions.at((positions.size()-1)/2)+1;
+
+		if (position < title.size()-1)
+			return position;
 	}
-	count = std::count(title.begin(), title.end(), '.');
-	if(count)
-	{
-		for(int i=0; i<title.size(); ++i)
-		{
-			if(title.at(i) == '.')
-			{
-				positions.push_back(i);
-			}
-		}
-		result = positions.at((positions.size()-1)/2)+1;
-		if(result < title.size()-1)
-		{
-			return result;
-		}
-		positions.clear();
-	}
-	count = std::count(title.begin(), title.end(), ';');
-	if(count)
-	{
-		for(int i=0; i<title.size(); ++i)
-		{
-			if(title.at(i) == ';')
-			{
-				positions.push_back(i);
-			}
-		}
-		result = positions.at((positions.size()-1)/2)+1;
-		if(result < title.size()-1)
-		{
-			return result;
-		}
-		positions.clear();
-	}
-	count = std::count(title.begin(), title.end(), '"');
-	if(count)
-	{
-		for(int i=0; i<title.size(); ++i)
-		{
-			if(title.at(i) == '"')
-			{
-				positions.push_back(i);
-			}
-		}
-		result = positions.at((positions.size()-1)/2);
-		if(result < title.size()-1)
-		{
-			return result;
-		}
-		positions.clear();
-	}
-	count = std::count(title.begin(), title.end(), ';');
-	if(count)
-	{
-		for(int i=0; i<title.size(); ++i)
-		{
-			if(title.at(i) == ';')
-			{
-				positions.push_back(i);
-			}
-		}
-		result = positions.at((positions.size()-1)/2)+1;
-		if(result < title.size()-1)
-		{
-			return result;
-		}
-		positions.clear();
-	}
-	count = std::count(title.begin(), title.end(), ',');
-	if(count)
-	{
-		for(int i=0; i<title.size(); ++i)
-		{
-			if(title.at(i) == ',')
-			{
-				positions.push_back(i);
-			}
-		}
-		result = positions.at((positions.size()-1)/2)+1;
-		if(result < title.size()-1)
-		{
-			return result;
-		}
-		positions.clear();
-	}
-	count = std::count(title.begin(), title.end(), ' ');
-	if(count)
-	{
-		std::vector<int> positions;
-		for(int i=0; i<title.size(); ++i)
-		{
-			if(title.at(i) == ' ')
-			{
-				positions.push_back(i);
-			}
-		}
-		return positions.at(positions.size()/2);
-	}
+
 	return title.size()/2;
 }
 
